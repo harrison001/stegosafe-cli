@@ -9,7 +9,7 @@
 > Your secrets hidden inside everyday images — and only you can bring them back.
 
 
-> 🧪 Try the web version now: [StegoSafe Web Demo →](https://stegosafe.com)  
+> 🧪 Try the web version now: [StegoSafe Web Demo →](https://stegosafe.com/demo/)  
 > 🧰 Prefer the terminal? You're in the right place.
 
 ---
