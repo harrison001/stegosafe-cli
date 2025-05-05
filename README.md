@@ -8,6 +8,10 @@
 > **Encrypt. Split. Vanish.**  
 > Your secrets hidden inside everyday images — and only you can bring them back.
 
+
+> 🧪 Try the web version now: [StegoSafe Web Demo →](https://stegosafe.com)  
+> 🧰 Prefer the terminal? You're in the right place.
+
 ---
 
 ## ✨ Features
