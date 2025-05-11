@@ -5,9 +5,14 @@
 ![Encryption](https://img.shields.io/badge/Encryption-AES--256-critical)
 ![Steganography](https://img.shields.io/badge/Steganography-LSB-important)
 
+
 > **Encrypt. Split. Vanish.**  
 > Your secrets hidden inside everyday images — and only you can bring them back.
+## 🎥 Demo Video
 
+See how StegoSafe works in 45 seconds:
+
+[![Watch the video](https://img.youtube.com/vi/qNDmonpYXfk/0.jpg)](https://youtu.be/qNDmonpYXfk)
 
 > 🧪 Try the web version now: [StegoSafe Web Demo →](https://stegosafe.com/demo/)  
 > 🧰 Prefer the terminal? You're in the right place.
