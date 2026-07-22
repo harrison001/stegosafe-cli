@@ -5,9 +5,13 @@
 ![Encryption](https://img.shields.io/badge/Encryption-AES--256-critical)
 ![Steganography](https://img.shields.io/badge/Steganography-LSB-important)
 
-
 > **Encrypt. Split. Vanish.**  
 > Your secrets hidden inside everyday images — and only you can bring them back.
+
+![Both images look identical; the right one carries an AES-256-encrypted seed phrase, differing by 0.01% of pixels each by one bit](docs/hidden-in-plain-sight.png)
+
+*Both images above are real — the actual input and output of this tool. The right one carries a 12-word recovery phrase, AES-256-encrypted, as one of a 3-of-5 Shamir split. Measured difference: **0.01% of pixels, each changed by exactly 1** in its least significant bit.*
+
 ## 🎥 Demo Video
 
 See how StegoSafe works in 45 seconds:
@@ -15,14 +19,15 @@ See how StegoSafe works in 45 seconds:
 [![Watch the video](https://img.youtube.com/vi/qNDmonpYXfk/0.jpg)](https://youtu.be/qNDmonpYXfk)
 
 > 🧪 Try the web version now: [StegoSafe Web Demo →](https://stegosafe.com/demo/)  
+> 📖 How it works, honestly: [What Happens When You Hide a Secret Inside a Photo →](https://stegosafe.com/blog/what-happens-when-you-hide-a-secret-in-a-photo/)  
 > 🧰 Prefer the terminal? You're in the right place.
 
 ---
 
 ## ✨ Features
 
-- **AES-256 Encryption**: Secrets are encrypted using military-grade AES-256 in CBC mode.
-- **Quantum-Resistant Security**: AES-256 is considered resilient even against quantum computing attacks.
+- **AES-256 Encryption**: Secrets are encrypted using AES-256 in CBC mode, with keys derived via PBKDF2 (100,000+ iterations).
+- **Strong against quantum attacks**: Grover's algorithm only halves AES-256's effective key strength — to ~128 bits, still considered secure for the foreseeable future.
 - **Shamir's Secret Sharing**: Your encryption key is split into 5 pieces — only 3 are needed to recover it.
 - **Steganography**: Secrets are invisibly embedded inside ordinary PNG images, undetectable to the naked eye.
 - **Threshold Recovery**: Lose 2 images? No problem. 3 shares are enough to recover your data.
@@ -66,7 +71,7 @@ python stegosafe_cli.py embed -i <input_folder> -s "<your_secret_text>" -o <outp
 ```
 
 Arguments:
-- `-i`, `--input_folder`: Directory containing source images (must be PNG files).
+- `-i`, `--input_folder`: Directory containing source images (PNG, JPG, or JPEG). At least 5 images are required — one per Shamir share. Output is always PNG.
 - `-s`, `--secret`: The text you want to hide securely.
 - `-o`, `--output_folder`: Directory where steganographic images will be saved.
 
@@ -108,10 +113,10 @@ Even if attackers find some images, without the required threshold, **your secre
 
 ## 🔒 Security Notes
 
-- **Use PNGs**: Only lossless PNG format is supported to preserve hidden data integrity.
-- **Threshold Protection**: Fewer than 3 images reveal nothing about the secret.
-- **Imperceptibility**: Only least significant bits are modified, making detection by visual inspection or naive analysis very difficult.
-- **Complete Locality**: Your data never leaves your machine.
+- **Keep them PNG, send them as files**: LSB data survives only while the file's bytes are untouched. It does **not** survive JPEG conversion, screenshots, resizing, or the recompression most chat apps apply to inline photos. Transfer stego images as *files/documents* (email attachment, "send as file", cloud drive), not as inline photos. [Full survival guide →](https://stegosafe.com/blog/what-happens-when-you-hide-a-secret-in-a-photo/)
+- **Threshold Protection**: Fewer than 3 images reveal nothing about the secret — mathematically, not just "less".
+- **Imperceptibility, not invisibility**: only least significant bits are modified, so visual inspection and naive analysis won't find it. Statistical steganalysis *can* flag LSB embedding — which is why the payload is AES-256-encrypted first: detection is not disclosure.
+- **Complete Locality**: your data never leaves your machine.
 
 ---
 
