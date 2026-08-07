@@ -1,68 +1,62 @@
 import os
+import sys
 import argparse
 import struct
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives import padding
-from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 import secrets
-import random
 from PIL import Image
 import numpy as np
 
+NONCE_SIZE = 12   # AES-GCM standard nonce
+KEY_SIZE = 32     # AES-256
+
+
+class DecryptionError(Exception):
+    """Raised when a secret cannot be recovered intact."""
+
+
 # ===== Crypto Utilities =====
 def encrypt_secret(secret_text):
-    key = secrets.token_bytes(32)  # 256-bit key
-    iv = secrets.token_bytes(16)   # 128-bit IV
-    backend = default_backend()
-    cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=backend)
-    encryptor = cipher.encryptor()
+    """Encrypt with AES-256-GCM.
 
-    # Pad plaintext
-    padder = padding.PKCS7(128).padder()
-    padded_data = padder.update(secret_text.encode()) + padder.finalize()
+    GCM is authenticated: on decryption the tag either verifies or it doesn't,
+    so a share image that has been altered or re-compressed is *detected* rather
+    than quietly decrypting to the wrong bytes. The previous version used
+    AES-CBC with no MAC of any kind.
 
-    # Encrypt
-    ciphertext = encryptor.update(padded_data) + encryptor.finalize()
+    Returns (key, nonce || ciphertext || tag).
+    """
+    key = secrets.token_bytes(KEY_SIZE)
+    nonce = secrets.token_bytes(NONCE_SIZE)
+    ciphertext = AESGCM(key).encrypt(nonce, secret_text.encode(), None)
+    return key, nonce + ciphertext
 
-    return key, iv + ciphertext
 
-def decrypt_secret(key, iv_ciphertext):
-    # Ensure key is 32 bytes
-    if len(key) != 32:
-        print(f"Warning: Key length {len(key)} != 32, adjusting size")
-        key = key[:32] if len(key) > 32 else key.ljust(32, b'\x00')
-    
-    # Extract IV and ciphertext
-    iv = iv_ciphertext[:16]
-    ciphertext = iv_ciphertext[16:]
-    
-    # Ensure ciphertext length is a multiple of 16
-    if len(ciphertext) % 16 != 0:
-        print(f"Warning: Ciphertext length {len(ciphertext)} is not a multiple of 16")
-        padding_needed = 16 - (len(ciphertext) % 16)
-        ciphertext = ciphertext + b'\x00' * padding_needed
-        
-    # Create decryptor
-    backend = default_backend()
-    cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=backend)
-    decryptor = cipher.decryptor()
-    
+def decrypt_secret(key, blob):
+    """Decrypt and verify. Raises DecryptionError rather than returning garbage.
+
+    The previous version padded short ciphertexts with zero bytes and, on
+    failure, fell back to `decode('utf-8', errors='ignore')` — so a damaged
+    image produced a plausible-looking but wrong secret with no warning. For a
+    tool that stores recovery phrases that is the worst possible behaviour.
+    """
+    if len(key) != KEY_SIZE:
+        raise DecryptionError(
+            f"Recovered key is {len(key)} bytes, expected {KEY_SIZE}. "
+            "The share images are probably from different secrets."
+        )
+    if len(blob) <= NONCE_SIZE:
+        raise DecryptionError("Encrypted data is truncated.")
+
+    nonce, ciphertext = blob[:NONCE_SIZE], blob[NONCE_SIZE:]
     try:
-        # Decrypt
-        padded_plaintext = decryptor.update(ciphertext) + decryptor.finalize()
-        
-        # Remove padding
-        unpadder = padding.PKCS7(128).unpadder()
-        plaintext = unpadder.update(padded_plaintext) + unpadder.finalize()
-        
-        return plaintext.decode()
-    except Exception as e:
-        print(f"Decryption failed: {str(e)}")
-        # Try to return without removing padding
-        try:
-            return padded_plaintext.decode('utf-8', errors='ignore')
-        except:
-            return f"[Unable to decrypt: {str(e)}]"
+        return AESGCM(key).decrypt(nonce, ciphertext, None).decode()
+    except Exception:
+        raise DecryptionError(
+            "Could not recover the secret. Either the shares don't belong "
+            "together, or one of the images has been altered or re-compressed "
+            "(saving a stego PNG as JPEG destroys the hidden data)."
+        )
 
 # ===== Shamir's Secret Sharing =====
 def split_secret(secret_bytes, n, k):
@@ -74,10 +68,17 @@ def split_secret(secret_bytes, n, k):
     secret_int = int.from_bytes(secret_bytes, 'big')
     prime = 2**256 - 189  # A prime close to 2^256
     
-    # Generate random coefficients
+    # Generate random coefficients.
+    #
+    # These must come from a cryptographically secure source and must be uniform
+    # over the whole field: Shamir's guarantee is that k-1 shares reveal *nothing*
+    # about the secret, and that only holds if the coefficients are unpredictable.
+    # This previously used random.randrange (Mersenne Twister, whose state can be
+    # recovered from its output) over [1, prime), which both broke that guarantee
+    # and biased the polynomial by excluding zero.
     coeffs = [secret_int]
     for _ in range(k - 1):
-        coeffs.append(random.randrange(1, prime))
+        coeffs.append(secrets.randbelow(prime))
     
     # Calculate value for each share
     shares = []
@@ -397,12 +398,17 @@ def main():
     
     args = parser.parse_args()
     
-    if args.command == 'embed':
-        encrypt_and_embed(args.input_folder, args.secret, args.output_folder)
-    elif args.command == 'recover':
-        extract_and_recover(args.stego_folder)
-    else:
-        parser.print_help()
+    try:
+        if args.command == 'embed':
+            encrypt_and_embed(args.input_folder, args.secret, args.output_folder)
+        elif args.command == 'recover':
+            extract_and_recover(args.stego_folder)
+        else:
+            parser.print_help()
+    except (DecryptionError, ValueError) as e:
+        # A clear sentence beats a traceback. Exit non-zero so scripts can tell.
+        print(f"\nError: {e}", file=sys.stderr)
+        raise SystemExit(1)
 
 if __name__ == "__main__":
     main() 

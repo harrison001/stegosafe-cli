@@ -26,9 +26,9 @@ See how StegoSafe works in 45 seconds:
 
 ## ✨ Features
 
-- **AES-256 Encryption**: Secrets are encrypted using AES-256 in CBC mode, with keys derived via PBKDF2 (100,000+ iterations).
+- **AES-256-GCM authenticated encryption**: the key is generated randomly (32 bytes from the OS CSPRNG) and then split with Shamir — this CLI has no passphrase, so there is no key derivation step. GCM's authentication tag means a damaged or altered image is **detected**, not silently decrypted into the wrong bytes.
 - **Strong against quantum attacks**: Grover's algorithm only halves AES-256's effective key strength — to ~128 bits, still considered secure for the foreseeable future.
-- **Shamir's Secret Sharing**: Your encryption key is split into 5 pieces — only 3 are needed to recover it.
+- **Shamir's Secret Sharing**: Your encryption key is split into 5 pieces — only 3 are needed to recover it. Coefficients come from the OS CSPRNG, so the "k-1 shares reveal nothing" guarantee actually holds.
 - **Steganography**: Secrets are invisibly embedded inside ordinary PNG images, undetectable to the naked eye.
 - **Threshold Recovery**: Lose 2 images? No problem. 3 shares are enough to recover your data.
 - **100% Local**: All operations happen on your device. No cloud, no leaks.
@@ -117,6 +117,8 @@ Even if attackers find some images, without the required threshold, **your secre
 - **Threshold Protection**: Fewer than 3 images reveal nothing about the secret — mathematically, not just "less".
 - **Imperceptibility, not invisibility**: only least significant bits are modified, so visual inspection and naive analysis won't find it. Statistical steganalysis *can* flag LSB embedding — which is why the payload is AES-256-encrypted first: detection is not disclosure.
 - **Complete Locality**: your data never leaves your machine.
+- **No passphrase in this CLI**: the AES key is random and lives *only* inside the Shamir shares. Anyone holding 3 of the 5 images can recover the secret — there is no second factor. The StegoSafe apps work differently: there the key is derived from your password, so recovery needs the images *and* the password.
+- **Not interchangeable with the apps**: this CLI writes its own container format, so images made here cannot be opened by the iOS/macOS apps and vice-versa. Recover a set with the same tool that created it.
 
 ---
 
