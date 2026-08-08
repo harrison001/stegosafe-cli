@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Output of running the tool. These are the whole point of the program: images
+# with a payload hidden in them. Nothing here should ever reach a public repo,
+# and without this file a single `git add -A` would have pushed a set of them.
+stego_images/
+stego_images.zip
+covers/
+stego/
+*.stego.png
+
+# macOS
+.DS_Store
