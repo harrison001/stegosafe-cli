@@ -19,6 +19,7 @@ See how StegoSafe works in 45 seconds:
 [![Watch the video](https://img.youtube.com/vi/qNDmonpYXfk/0.jpg)](https://youtu.be/qNDmonpYXfk)
 
 > 🧪 Try the web version now: [StegoSafe Web Demo →](https://stegosafe.com/demo/)  
+> 📱 Or the native apps for iPhone, iPad and Mac: [stegosafe.com →](https://stegosafe.com/)  
 > 📖 How it works, honestly: [What Happens When You Hide a Secret Inside a Photo →](https://stegosafe.com/blog/what-happens-when-you-hide-a-secret-in-a-photo/)  
 > 🧰 Prefer the terminal? You're in the right place.
 
@@ -114,6 +115,7 @@ Even if attackers find some images, without the required threshold, **your secre
 ## 🔒 Security Notes
 
 - **Keep them PNG, send them as files**: LSB data survives only while the file's bytes are untouched. It does **not** survive JPEG conversion, screenshots, resizing, or the recompression most chat apps apply to inline photos. Transfer stego images as *files/documents* (email attachment, "send as file", cloud drive), not as inline photos. [Full survival guide →](https://stegosafe.com/blog/what-happens-when-you-hide-a-secret-in-a-photo/)
+  - This is a property of LSB, not a bug to be fixed here. Measured: a sequential LSB payload comes back from a simulated WhatsApp send at a ~49% bit error rate — a coin flip, so nothing survives — and JPEG quality 90 alone is enough to destroy it. Surviving the inline-photo path needs a transform-domain or learned watermark instead, which is a different tool for a different job: [WaxSeal →](https://stegosafe.com/waxseal/)
 - **Threshold Protection**: Fewer than 3 images reveal nothing about the secret — mathematically, not just "less".
 - **Imperceptibility, not invisibility**: only least significant bits are modified, so visual inspection and naive analysis won't find it. Statistical steganalysis *can* flag LSB embedding — which is why the payload is AES-256-encrypted first: detection is not disclosure.
 - **Complete Locality**: your data never leaves your machine.
